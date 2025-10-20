@@ -52,11 +52,15 @@ class PDFTrainer:
             if '\\' in filename:
                 filename = filename.split('\\')[-1]
             # Se inizia con / o contiene pattern tipo /folder/, è un path Unix
-            elif filename.startswith('/') or '/' in filename[:filename.rfind('.')]:
+            elif filename.startswith('/'):
                 # Trova l'ultima / prima dell'estensione per evitare date con /
-                last_slash_before_ext = filename.rfind('/', 0, filename.rfind('.'))
-                if last_slash_before_ext >= 0:
-                    filename = filename[last_slash_before_ext + 1:]
+                dot_pos = filename.rfind('.')
+                if dot_pos > 0:  # Se c'è un'estensione
+                    last_slash_before_ext = filename.rfind('/', 0, dot_pos)
+                    if last_slash_before_ext >= 0:
+                        filename = filename[last_slash_before_ext + 1:]
+                else:  # Nessuna estensione, prendi ultimo componente
+                    filename = filename.split('/')[-1]
         
         # Rimuovi .pdf alla fine
         name = filename[:-4] if filename.lower().endswith('.pdf') else filename
@@ -112,8 +116,9 @@ class PDFTrainer:
             
             # Try to find the last numeric part before date
             # Match numbers that might include hyphens (e.g., 2024-123) or underscores
-            num_pattern = r'[_\s-]([\w-]*\d+[\w-]*)[_\s-]*$'
-            num_match = re.search(num_pattern, before_date)
+            # Try pattern with separator first
+            num_pattern_with_sep = r'[_\s-]([\w-]*\d+[\w-]*)[_\s-]*$'
+            num_match = re.search(num_pattern_with_sep, before_date)
             
             if num_match:
                 numero = num_match.group(1)
@@ -124,6 +129,23 @@ class PDFTrainer:
                         'numero_documento': numero,
                         'data_documento': data_str
                     }
+            
+            # If no match with separator, try matching number at the end without separator
+            num_pattern_no_sep = r'([\w-]*\d+[\w-]*)[_\s-]*$'
+            num_match = re.search(num_pattern_no_sep, before_date)
+            
+            if num_match:
+                numero = num_match.group(1)
+                # Find where the number starts
+                num_start = num_match.start()
+                if num_start > 0:  # Make sure there's something before the number
+                    denominazione = before_date[:num_start].strip('_- ')
+                    if denominazione:
+                        return {
+                            'denominazione': denominazione,
+                            'numero_documento': numero,
+                            'data_documento': data_str
+                        }
         
         return None
     
