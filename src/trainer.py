@@ -42,45 +42,83 @@ class PDFTrainer:
             None se non riesce a parsificare
         """
         # Rimuovi estensione
-        name = Path(filename).stem
+        # Converti a stringa e estrai solo il nome file se è un path
+        if isinstance(filename, Path):
+            # Se è un oggetto Path, usa .name
+            filename = filename.name
+        else:
+            filename = str(filename)
+            # Se contiene backslash, è sicuramente un Windows path
+            if '\\' in filename:
+                filename = filename.split('\\')[-1]
+            # Se inizia con / o contiene pattern tipo /folder/, è un path Unix
+            elif filename.startswith('/') or '/' in filename[:filename.rfind('.')]:
+                # Trova l'ultima / prima dell'estensione per evitare date con /
+                last_slash_before_ext = filename.rfind('/', 0, filename.rfind('.'))
+                if last_slash_before_ext >= 0:
+                    filename = filename[last_slash_before_ext + 1:]
+        
+        # Rimuovi .pdf alla fine
+        name = filename[:-4] if filename.lower().endswith('.pdf') else filename
         
         # Pattern 1: "Denominazione NumDoc del Data"
-        pattern1 = r'^(.+?)\s+(\S+)\s+del\s+(.+)$'
-        match = re.match(pattern1, name)
-        if match:
-            return {
-                'denominazione': match.group(1).strip(),
-                'numero_documento': match.group(2).strip(),
-                'data_documento': match.group(3).strip()
-            }
+        # Supporta anche numeri con trattini tipo "2024-123"
+        # Usa lookahead per trovare " del " e poi prendi l'ultimo token numerico prima di esso
+        if ' del ' in name:
+            parts_by_del = name.split(' del ', 1)
+            if len(parts_by_del) == 2:
+                before_del = parts_by_del[0]
+                data = parts_by_del[1]
+                
+                # Find the last word-like token (which should be the number)
+                # Split by spaces and take last token
+                tokens = before_del.split()
+                if len(tokens) >= 2:
+                    numero = tokens[-1]
+                    denominazione = ' '.join(tokens[:-1])
+                    
+                    # Verify numero contains at least one digit
+                    if re.search(r'\d', numero):
+                        return {
+                            'denominazione': denominazione,
+                            'numero_documento': numero,
+                            'data_documento': data
+                        }
         
         # Pattern 2: "Denominazione - Numero - Data"
-        pattern2 = r'^(.+?)\s*-\s*(\S+)\s*-\s*(.+)$'
-        match = re.match(pattern2, name)
-        if match:
-            return {
-                'denominazione': match.group(1).strip(),
-                'numero_documento': match.group(2).strip(),
-                'data_documento': match.group(3).strip()
-            }
+        # Split by ' - ' and find which part is the date
+        if ' - ' in name:
+            parts = name.split(' - ')
+            if len(parts) == 3:
+                # Check if third part looks like a date
+                if re.search(r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}', parts[2]):
+                    return {
+                        'denominazione': parts[0].strip(),
+                        'numero_documento': parts[1].strip(),
+                        'data_documento': parts[2].strip()
+                    }
         
-        # Pattern 3: "Denominazione_Numero_Data" (separato da underscore)
+        # Pattern 3: "Denominazione_Numero_Data" (separato da underscore o altri separatori)
         # Cerca pattern data per identificarla
         date_pattern = r'\d{1,2}[-/]\d{1,2}[-/]\d{2,4}'
         date_match = re.search(date_pattern, name)
         
         if date_match:
             data_str = date_match.group()
-            # Dividi sul pattern della data
-            parts = name.split(data_str)
-            if len(parts) >= 2:
-                before_date = parts[0].strip('_- ')
-                # Cerca l'ultimo numero prima della data
-                num_pattern = r'(\S+\d+\S*)$'
-                num_match = re.search(num_pattern, before_date)
-                if num_match:
-                    numero = num_match.group(1)
-                    denominazione = before_date[:num_match.start()].strip('_- ')
+            data_start = date_match.start()
+            
+            # Everything before the date
+            before_date = name[:data_start].strip('_- ')
+            
+            # Try to find the last numeric part before date
+            # Match numbers that might include hyphens (e.g., 2024-123) or underscores
+            num_pattern = r'[_\s-]([\w-]*\d+[\w-]*)[_\s-]*$'
+            num_match = re.search(num_pattern, before_date)
+            
+            if num_match:
+                numero = num_match.group(1)
+                denominazione = before_date[:num_match.start()].strip('_- ')
+                if denominazione:  # Make sure we have a denominazione
                     return {
                         'denominazione': denominazione,
                         'numero_documento': numero,

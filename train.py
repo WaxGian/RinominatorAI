@@ -11,8 +11,6 @@ from pathlib import Path
 # Aggiungi src al path
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
-from trainer import PDFTrainer
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -71,6 +69,15 @@ I PDF nella cartella devono essere già rinominati correttamente usando pattern 
         print(f"   Richiesti: almeno 5 PDF per training affidabile")
         print(f"\n💡 Suggerimento: Rinomina manualmente almeno 10-20 PDF seguendo il pattern:")
         print(f"   'Denominazione NumDoc del Data.pdf'")
+        sys.exit(1)
+    
+    # Import trainer (lazy to allow --help without dependencies)
+    try:
+        from trainer import PDFTrainer
+    except ImportError as e:
+        print(f"❌ Errore: Dipendenze mancanti: {e}")
+        print(f"\n💡 Installa le dipendenze con:")
+        print(f"   pip install -r requirements.txt")
         sys.exit(1)
     
     # Crea trainer

@@ -11,8 +11,6 @@ from pathlib import Path
 # Aggiungi src al path
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
-from predictor import PDFPredictor
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -78,6 +76,15 @@ Il modello deve essere stato addestrato prima usando train.py
     if len(pdf_files) == 0:
         print(f"⚠️  Attenzione: Nessun PDF trovato in {input_folder}")
         sys.exit(0)
+    
+    # Import predictor (lazy to allow --help without dependencies)
+    try:
+        from predictor import PDFPredictor
+    except ImportError as e:
+        print(f"❌ Errore: Dipendenze mancanti: {e}")
+        print(f"\n💡 Installa le dipendenze con:")
+        print(f"   pip install -r requirements.txt")
+        sys.exit(1)
     
     try:
         # Crea predictor
