@@ -1,0 +1,18 @@
+# RinominatorAI - Dipendenze Python
+
+# PDF Processing
+PyMuPDF>=1.23.0
+Pillow>=10.0.0
+
+# OCR e AI
+easyocr>=1.7.0
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Utilities
+numpy>=1.24.0
+pandas>=2.0.0
+python-dateutil>=2.8.0
+
+# Optional: per versione locale
+opencv-python>=4.8.0
