@@ -1,0 +1,62 @@
+# Configurazione RinominatorAI
+
+ocr:
+  languages:
+    - it  # Italiano
+    - en  # Inglese
+  gpu: true
+  confidence_threshold: 0.3
+
+extraction:
+  fields:
+    denominazione:
+      position: "top-left"
+      zone:
+        x_max: 0.4  # 40% larghezza da sinistra
+        y_max: 0.3  # 30% altezza dall'alto
+      keywords:
+        - "denominazione"
+        - "ragione sociale"
+        - "ditta"
+        - "fornitore"
+    
+    numero_documento:
+      position: "center"
+      zone:
+        x_min: 0.3
+        x_max: 0.7
+        y_max: 0.5
+      keywords:
+        - "n."
+        - "numero"
+        - "n°"
+        - "nr"
+        - "fattura"
+        - "doc"
+      patterns:
+        - "\\b\\d{3,}\\b"  # Numeri di almeno 3 cifre
+    
+    data_documento:
+      position: "center-right"
+      zone:
+        x_min: 0.5
+        y_max: 0.5
+      keywords:
+        - "data"
+        - "del"
+        - "emissione"
+      patterns:
+        - "\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}"  # Date formato GG/MM/AAAA
+
+output:
+  format: "{denominazione} {numero} del {data}.pdf"
+  clean_names: true
+  max_filename_length: 100
+  
+  # Caratteri da rimuovere dal nome file
+  invalid_chars: '<>:"/\\|?*'
+
+processing:
+  pdf_dpi: 144  # Risoluzione rendering (72 = normale, 144 = alta)
+  batch_size: 1  # File processati contemporaneamente
+  temp_folder: "temp_images"
